@@ -36,15 +36,15 @@ async function fetchCharacters(id:Number) {
     let wordcount:number = 0;
     for(var character of data.data) {
         if(character.name) wordcount += character.name.split(' ').length
-        if(character.entry_parsed) {
-            character.entry_parsed = character.entry_parsed.replace(/<[^>]+>/g, '');
-            wordcount += character.entry_parsed.split(' ').length
+        if(character.entry) {
+            character.entry_sanitized = character.entry.replace(/<[^>]+>/g, '');
+            wordcount += character.entry_sanitized.split(' ').length
         }
         if(character.posts) {
             for(var post of character.posts) {
                 if(post.name) wordcount += post.name.split(' ').length
-                post.entry_parsed = post.entry_parsed.replace(/<[^>]+>/g, '');
-                wordcount += post.entry_parsed.split(' ').length
+                post.entry_sanitized = post.entry.replace(/<[^>]+>/g, '');
+                wordcount += post.entry_sanitized.split(' ').length
             }
         }
         if (character.title) wordcount += character.title.split(' ').length
@@ -66,16 +66,16 @@ async function fetchLocations(id:Number) {
     for(var location of data.data) {
         //console.log(location)
         if(location.name) wordcount += location.name.split(' ').length
-        if(location.entry_parsed) {
-            location.entry_parsed = location.entry_parsed.replace(/<[^>]+>/g, '');
-            wordcount += location.entry_parsed.split(' ').length
+        if(location.entry) {
+            location.entry_sanitized = location.entry.replace(/<[^>]+>/g, '');
+            wordcount += location.entry_sanitized.split(' ').length
         }
         if (location.type) wordcount += location.type.split(' ').length
         if(location.posts) {
             for(var post of location.posts) {
                 if(post.name) wordcount += post.name.split(' ').length
-                post.entry_parsed = post.entry_parsed.replace(/<[^>]+>/g, '');
-                wordcount += post.entry_parsed.split(' ').length
+                post.entry_sanitized = post.entry.replace(/<[^>]+>/g, '');
+                wordcount += post.entry_sanitized.split(' ').length
             }
         }
     }
