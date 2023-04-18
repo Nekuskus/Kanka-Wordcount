@@ -1,5 +1,5 @@
 require('dotenv').config()
-import fetch from "node-fetch"; 
+//import fetch from "node-fetch"; 
 //const { fetch } = require('node-fetch')
 
 class Score {
@@ -78,7 +78,7 @@ async function fetchCharacters(id:Number) {
         if(character.name) name_wc = character.name.split(' ').length
         if(character.title) title_wc = character.title.split(' ').length
         if(character.entry) {
-            character.entry_sanitized = character.entry.replace(/<[^>]+>/g, '');
+            character.entry_sanitized = character.entry.replace(/<br>/g,'\n').replace(/<[^>]+>/g, '');
             entry_wc = character.entry_sanitized.split(' ').length
         }
         if(character.posts) {
@@ -86,7 +86,7 @@ async function fetchCharacters(id:Number) {
                 if(post.name) {
                     name_wc += post.name.split(' ').length
                 }
-                post.entry_sanitized = post.entry.replace(/<[^>]+>/g, '');
+                post.entry_sanitized = post.entry.replace(/<br>/g,'\n').replace(/<[^>]+>/g, '');
                 post_wc += post.entry_sanitized.split(' ').length
             }
         }
@@ -110,19 +110,26 @@ async function fetchLocations(id:Number) {
     let wordcount:number = 0;
     for(var location of data.data) {
         //console.log(location)
-        if(location.name) wordcount += location.name.split(' ').length
+        var name_wc = 0
+        var entry_wc = 0
+        var post_wc = 0
+        var type_wc = 0
+	if(location.name) name_wc += location.name.split(' ').length
         if(location.entry) {
-            location.entry_sanitized = location.entry.replace(/<[^>]+>/g, '');
-            wordcount += location.entry_sanitized.split(' ').length
+            location.entry_sanitized = location.entry.replace(/<br>/g,'\n').replace(/<[^>]+>/g, '');
+            entry_wc += location.entry_sanitized.split(' ').length
         }
-        if (location.type) wordcount += location.type.split(' ').length
+        if (location.type) type_wc += location.type.split(' ').length
         if(location.posts) {
             for(var post of location.posts) {
-                if(post.name) wordcount += post.name.split(' ').length
-                post.entry_sanitized = post.entry.replace(/<[^>]+>/g, '');
-                wordcount += post.entry_sanitized.split(' ').length
+                if(post.name) name_wc += post.name.split(' ').length
+                post.entry_sanitized = post.entry.replace(/<br>/g,'\n').replace(/<[^>]+>/g, '');
+                post_wc += post.entry_sanitized.split(' ').length
             }
         }
+	var total_wc = name_wc + entry_wc + post_wc + type_wc
+        wordcount += total_wc
+        placeInRanking(new Score("(location)  " + location.name, total_wc))
     }
     return wordcount
 }
