@@ -1,35 +1,79 @@
 require('dotenv').config()
+import { exit } from "node:process";
 //import fetch from "node-fetch"; 
 //const { fetch } = require('node-fetch')
 import { parseArgs } from "node:util";
 
 const {
-	values: { verbose, output, quiet, list_length, reverse }
+	values: { verbose, output, quiet, list_length, reverse, help, objects, no_attributes }
 } = parseArgs({
 	options: {
-		verbose: {
+		verbose: { //TODO, what should it even do?
 			type: "boolean",
 			short: "v",
 		},
-		output: {
+		output: { //TODO
 			type: "boolean",
 			short: "o",
 		},
-		quiet: {
+		quiet: { //TODO
 			type: "boolean",
 			short: "q",
 		},
-		list_length: {
+		list_length: { //IN-PROGRESS: add 0 and negative (reading from the end, eg: 185. 184. 183. ...)
 			type: "string",
 			short: "l",
 			default: "10",
 		},
-		reverse: {
+		reverse: { //IMPLEMENTED
 			type: "boolean",
 			short: "r",
-		}
+		},
+        help: { //IN-PROGRESS
+            type: "boolean",
+            short: "h",
+        },
+        objects: { //TODO, values: 'all'|example:'characters,notes,loactions,'
+            type: "string",
+            short: "O",
+            default: "all"
+        },
+        no_attributes: { //TODO, count attributes if true (name, type, pronouns... + the attributes tab)
+            type: 'boolean',
+            short: 'n'
+        },
+        parent: {
+            type: 'boolean',
+            short: 'p'
+        }
 	}
 })
+
+if(help) {
+    var helptext:string = `usage: npx ts-node index.ts [OPTIONS] [-O all|characters,locations,notes,items,...]
+    Takes the word count of all your campaigns, counting each object separately.
+    
+    By default writes to standard output.
+    
+    Uses a .env file for the API key and API base.
+    Format:
+    API_KEY=[your api key here]
+    API_BASE=[preffered kanka.io API version's base url, 1.0: https://kanka.io/api/1.0/]
+    
+    Options:
+        -h, --help              display this message
+        -l, --list_length       length of the highest wordcount ranking, pass 0 to omit it, also works with negative numbers
+        -n, --no_attributes     omit atrributes (age, gender, type, pronouns... + attributes tab)
+        -o, --output            entries are also written to out.json in the working directory
+        -O, --objects           specify objects to be included (default: all)
+        -p, --parent            include parent object's name in the calculations
+        -r, --reverse           display N lowest instead of N highest entries
+        -q, --quiet             display nothing in terminal, to be used with -o
+        -v, --verbose           ?????? not yet implemented
+    `
+    console.log(helptext)
+    exit()
+}
 
 class Score {
     name:string = ""
@@ -50,7 +94,7 @@ function placeInRanking(score:Score) {
             highest[i] = score
             stop = true
         } else {
-            if(highest[i].wc < score.wc) {
+            if((highest[i].wc < score.wc && !reverse) || (highest[i].wc > score.wc && reverse)) {
                 highest.splice(i, 0, score)
                 if(highest.length > ranking_len) {
                     highest.splice(ranking_len, highest.length - ranking_len)
@@ -79,17 +123,17 @@ async function fetchCampaigns() {
         console.log(`Character word count: ${charWC}`)
         let locaWC:number = await fetchLocations(campaign['id'])
         console.log(`Location word count: ${locaWC}`)
-        let abilWC:number = await fetchAbilities(campaign['id'])
-        console.log(`Abitilies word count: ${abilWC}`)
-        let orgsWC:number = await fetchOrganisations(campaign['id'])
-        console.log(`Organisations word count: ${orgsWC}`)
-        let itemWC:number = await fetchItems(campaign['id'])
-        console.log(`Items word count: ${itemWC}`)
-        let famiWC:number = await fetchFamilies(campaign['id'])
-        console.log(`Families word count: ${famiWC}`)
+        //let abilWC:number = await fetchAbilities(campaign['id']) //TODO
+        //console.log(`Abitilies word count: ${abilWC}`)
+        //let orgsWC:number = await fetchOrganisations(campaign['id']) //TODO
+        //console.log(`Organisations word count: ${orgsWC}`)
+        //let itemWC:number = await fetchItems(campaign['id']) //TODO
+        //console.log(`Items word count: ${itemWC}`)
+        //let famiWC:number = await fetchFamilies(campaign['id']) //TODO
+        //console.log(`Families word count: ${famiWC}`)
         //console.log('call out')
-        console.log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC}`)
-        console.log("Highest wordcount entries:")
+        console.log(`Total word count: ${charWC + locaWC /*+ abilWC + orgsWC + itemWC + famiWC*/}`)
+        console.log(`${!reverse ? 'Highest' : 'Lowest'} wordcount entries:`)
         highest.forEach((el, idx) => {
             console.log(`${idx+1}. ${el.name}: ${el.wc}`)
         });
@@ -309,7 +353,7 @@ async function fetchFamilies(id:Number) {
                 post.entry_sanitized = post.entry.replace(/<br>/g,'\n').replace(/<[^>]+>/g, '');
                 post_wc += post.entry_sanitized.split(' ').length
             }
-  	}
+    }
 	var total_wc = name_wc + entry_wc + post_wc + type_wc
         wordcount += total_wc
         placeInRanking(new Score("(family)      " + location.name, total_wc))
