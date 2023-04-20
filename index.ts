@@ -1,34 +1,32 @@
 require('dotenv').config()
 import { exit } from "node:process";
-//import fetch from "node-fetch"; 
-//const { fetch } = require('node-fetch')
 import { parseArgs } from "node:util";
 
 const {
 	values: { verbose, output, quiet, list_length, reverse, help, objects, no_attributes }
 } = parseArgs({
 	options: {
-		verbose: { //TODO, what should it even do?
-			type: "boolean",
-			short: "v",
-		},
-		output: { //TODO
-			type: "boolean",
-			short: "o",
-		},
-		quiet: { //TODO
-			type: "boolean",
-			short: "q",
-		},
-		list_length: { //IN-PROGRESS: add 0 and negative (reading from the end, eg: 185. 184. 183. ...)
-			type: "string",
-			short: "l",
-			default: "10",
-		},
-		reverse: { //IMPLEMENTED
-			type: "boolean",
-			short: "r",
-		},
+        verbose: { //TODO, what should it even do?
+            type: "boolean",
+            short: "v",
+        },
+        output: { //TODO
+            type: "boolean",
+            short: "o",
+        },
+        quiet: { //TODO
+            type: "boolean",
+            short: "q",
+        },
+        list_length: { //IN-PROGRESS: add 0 and negative (reading from the end, eg: 185. 184. 183. ...)
+            type: "string",
+            short: "l",
+            default: "10",
+        },
+        reverse: { //IMPLEMENTED
+            type: "boolean",
+            short: "r",
+        },
         help: { //IN-PROGRESS
             type: "boolean",
             short: "h",
