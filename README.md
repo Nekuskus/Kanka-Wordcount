@@ -9,11 +9,12 @@ npx ts-node index.ts [OPTIONS] [-O all|characters,locations,notes,items,...]
 ```
 
 ## Configuration: 
-Uses a .env file for the API key and API base.
+Uses a .env file for the API key and API base.<br/>
 Format:
+```ini
 API_KEY=[your api key here]
 API_BASE=[preffered kanka.io API version's base url, 1.0: https://kanka.io/api/1.0/]
-
+```
 ## Options:
     -h, --help              display this message
     -l, --list_length       length of the highest wordcount ranking, pass 0 to omit it, also works with negative numbers
