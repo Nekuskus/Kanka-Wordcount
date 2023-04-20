@@ -1,6 +1,35 @@
 require('dotenv').config()
 //import fetch from "node-fetch"; 
 //const { fetch } = require('node-fetch')
+import { parseArgs } from "node:util";
+
+const {
+	values: { verbose, output, quiet, list_length, reverse }
+} = parseArgs({
+	options: {
+		verbose: {
+			type: "boolean",
+			short: "v",
+		},
+		output: {
+			type: "boolean",
+			short: "o",
+		},
+		quiet: {
+			type: "boolean",
+			short: "q",
+		},
+		list_length: {
+			type: "string",
+			short: "l",
+			default: "10",
+		},
+		reverse: {
+			type: "boolean",
+			short: "r",
+		}
+	}
+})
 
 class Score {
     name:string = ""
@@ -12,19 +41,19 @@ class Score {
 }
 
 var highest:Array<Score> = []
-
+var ranking_len:number = parseInt(list_length)
 function placeInRanking(score:Score) {
     var i:number = 0
     var stop:boolean = false
-    while(i < 180 && !stop) {
+    while(i < ranking_len && !stop) {
         if(!highest[i]) {
             highest[i] = score
             stop = true
         } else {
-            if(highest[i].wc > score.wc) {
+            if(highest[i].wc < score.wc) {
                 highest.splice(i, 0, score)
-                if(highest.length > 10) {
-                    highest.splice(180, highest.length - 180)
+                if(highest.length > ranking_len) {
+                    highest.splice(ranking_len, highest.length - ranking_len)
                 }
                 stop = true
             }
@@ -100,7 +129,7 @@ async function fetchCharacters(id:Number) {
         }
         var total_wc = name_wc + entry_wc + post_wc + title_wc
         wordcount += total_wc
-        placeInRanking(new Score("(character) " + character.name, total_wc))
+        placeInRanking(new Score("(character)   " + character.name, total_wc))
     }
     return wordcount
 }
@@ -137,13 +166,13 @@ async function fetchLocations(id:Number) {
         }
 	var total_wc = name_wc + entry_wc + post_wc + type_wc
         wordcount += total_wc
-        placeInRanking(new Score("(location)  " + location.name, total_wc))
+        placeInRanking(new Score("(location)    " + location.name, total_wc))
     }
     return wordcount
 }
 async function fetchAbilities(id:Number) {
 	//console.log(id)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/locations?related=1` , {
+    const response = await fetch(process.env.API_BASE + `campaigns/${id}/abilities?related=1` , {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -173,13 +202,13 @@ async function fetchAbilities(id:Number) {
         }
 	var total_wc = name_wc + entry_wc + post_wc + type_wc
         wordcount += total_wc
-        placeInRanking(new Score("(location)  " + location.name, total_wc))
+        placeInRanking(new Score("(ability)     " + location.name, total_wc))
     }
     return wordcount
 }
 async function fetchItems(id:Number) {
     //console.log(id)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/locations?related=1` , {
+    const response = await fetch(process.env.API_BASE + `campaigns/${id}/items?related=1` , {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -209,14 +238,14 @@ async function fetchItems(id:Number) {
         }
 	var total_wc = name_wc + entry_wc + post_wc + type_wc
         wordcount += total_wc
-        placeInRanking(new Score("(location)  " + location.name, total_wc))
+        placeInRanking(new Score("(item)        " + location.name, total_wc))
     }
     return wordcount
     
 }
 async function fetchOrganisations(id:Number) {
     //console.log(id)
-	const response = await fetch(process.env.API_BASE + `campaigns/${id}/locations?related=1` , {
+	const response = await fetch(process.env.API_BASE + `campaigns/${id}/organisations?related=1` , {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -246,14 +275,14 @@ async function fetchOrganisations(id:Number) {
         }
 	var total_wc = name_wc + entry_wc + post_wc + type_wc
         wordcount += total_wc
-        placeInRanking(new Score("(location)  " + location.name, total_wc))
+        placeInRanking(new Score("(organisation) " + location.name, total_wc))
     }
     return wordcount
     
 }
 async function fetchFamilies(id:Number) {
     //console.log(id)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/locations?related=1` , {
+    const response = await fetch(process.env.API_BASE + `campaigns/${id}/families?related=1` , {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -283,7 +312,7 @@ async function fetchFamilies(id:Number) {
   	}
 	var total_wc = name_wc + entry_wc + post_wc + type_wc
         wordcount += total_wc
-        placeInRanking(new Score("(location)  " + location.name, total_wc))
+        placeInRanking(new Score("(family)      " + location.name, total_wc))
     }
     return wordcount
     
