@@ -44,7 +44,7 @@ const {
             type: 'boolean',
             short: 'p'
         }
-	}
+    }
 })
 
 if(help) {
