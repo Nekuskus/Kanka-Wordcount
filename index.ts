@@ -52,7 +52,7 @@ function log(str:string) {
 }
 
 if(help) {
-    var helptext:string = `usage: npx ts-node index.ts [OPTIONS] [-O all|characters,locations,notes,items,...]
+    var helptext:string = `usage: npx ts-node index.ts [OPTIONS] [-l N] [-O all|characters,locations,notes,items,...]
     Takes the word count of all your campaigns, counting each object separately.
     
     By default writes to standard output.
@@ -64,7 +64,7 @@ if(help) {
     
     Options:
         -h, --help              display this message
-        -l, --list_length       length of the highest wordcount ranking, pass 0 to omit it, also works with negative numbers
+        -l, --list_length       length of the highest wordcount ranking, pass 0 to omit it, also works with negative numbers (default: 10)
         -n, --no_attributes     omit atrributes (age, gender, type, pronouns... + attributes tab)
         -o, --output            entries are also written to out.json in the working directory
         -O, --objects           specify objects to be included (default: all)
