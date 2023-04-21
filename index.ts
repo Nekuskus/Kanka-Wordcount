@@ -71,7 +71,7 @@ if(help) {
         -p, --parent            include parent object's name in the calculations
         -r, --reverse           display N lowest instead of N highest entries
         -q, --quiet             display nothing in terminal, to be used with -o
-        -v, --verbose           writes api calls to output
+        -v, --verbose           writes api calls to standard output with time taken
     `
     log(helptext)
     exit()

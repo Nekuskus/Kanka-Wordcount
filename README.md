@@ -24,4 +24,4 @@ API_BASE=[preffered kanka.io API version's base url, 1.0: https://kanka.io/api/1
     -p, --parent            include parent object's name in the calculations
     -r, --reverse           display N lowest instead of N highest entries
     -q, --quiet             display nothing in terminal, to be used with -o
-    -v, --verbose           ?????? not yet implemented
+    -v, --verbose           writes api calls to standard output with time taken
