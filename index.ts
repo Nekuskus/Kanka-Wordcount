@@ -3,10 +3,10 @@ import { exit } from "node:process";
 import { parseArgs } from "node:util";
 
 const {
-	values: { verbose, output, quiet, list_length, reverse, help, objects, no_attributes }
+	values: { verbose, output, quiet, list_length, reverse, help, objects, no_attributes, parent }
 } = parseArgs({
 	options: {
-        verbose: { //TODO, what should it even do?
+        verbose: { //TODO
             type: "boolean",
             short: "v",
         },
@@ -14,11 +14,11 @@ const {
             type: "boolean",
             short: "o",
         },
-        quiet: { //TODO
+        quiet: { //IMPLEMENTED
             type: "boolean",
             short: "q",
         },
-        list_length: { //IN-PROGRESS: add 0 and negative (reading from the end, eg: 185. 184. 183. ...)
+        list_length: { //IMPLEMENTED
             type: "string",
             short: "l",
             default: "10",
@@ -27,7 +27,7 @@ const {
             type: "boolean",
             short: "r",
         },
-        help: { //IN-PROGRESS
+        help: { //IMPLEMENTED
             type: "boolean",
             short: "h",
         },
@@ -36,7 +36,7 @@ const {
             short: "O",
             default: "all"
         },
-        no_attributes: { //TODO, count attributes if true (name, type, pronouns... + the attributes tab)
+        no_attributes: { //TODO, don't count attributes if true (name, type, pronouns... + the attributes tab)
             type: 'boolean',
             short: 'n'
         },
@@ -46,6 +46,10 @@ const {
         }
     }
 })
+
+function log(str:string) {
+	if(!quiet) console.log(str)
+}
 
 if(help) {
     var helptext:string = `usage: npx ts-node index.ts [OPTIONS] [-O all|characters,locations,notes,items,...]
@@ -67,9 +71,9 @@ if(help) {
         -p, --parent            include parent object's name in the calculations
         -r, --reverse           display N lowest instead of N highest entries
         -q, --quiet             display nothing in terminal, to be used with -o
-        -v, --verbose           ?????? not yet implemented
+        -v, --verbose           writes api calls to output
     `
-    console.log(helptext)
+    log(helptext)
     exit()
 }
 
@@ -87,16 +91,16 @@ var ranking_len:number = parseInt(list_length)
 function placeInRanking(score:Score) {
     var i:number = 0
     var stop:boolean = false
-    while(i < ranking_len && !stop) {
+    while(/*i < ranking_len &&*/ !stop) {
         if(!highest[i]) {
             highest[i] = score
             stop = true
         } else {
             if((highest[i].wc < score.wc && !reverse) || (highest[i].wc > score.wc && reverse)) {
                 highest.splice(i, 0, score)
-                if(highest.length > ranking_len) {
-                    highest.splice(ranking_len, highest.length - ranking_len)
-                }
+                //if(highest.length > ranking_len) {
+                    //highest.splice(ranking_len, highest.length - ranking_len)
+                //}
                 stop = true
             }
         }
@@ -113,33 +117,35 @@ async function fetchCampaigns() {
         }
     })
     const {data, error} = await response.json()
-    //console.log(data)
+    //log(data)
     for(var campaign of data) {
-        //console.log(campaign)
-        console.log(`======Campaign: ${campaign['name']} (${campaign['id']})======`)
+        //log(campaign)
+        log(`======Campaign: ${campaign['name']} (${campaign['id']})======`)
         let charWC:number = await fetchCharacters(campaign['id'])
-        console.log(`Character word count: ${charWC}`)
+        log(`Character word count: ${charWC}`)
         let locaWC:number = await fetchLocations(campaign['id'])
-        console.log(`Location word count: ${locaWC}`)
+        log(`Location word count: ${locaWC}`)
         //let abilWC:number = await fetchAbilities(campaign['id']) //TODO
-        //console.log(`Abitilies word count: ${abilWC}`)
+        //log(`Abitilies word count: ${abilWC}`)
         //let orgsWC:number = await fetchOrganisations(campaign['id']) //TODO
-        //console.log(`Organisations word count: ${orgsWC}`)
+        //log(`Organisations word count: ${orgsWC}`)
         //let itemWC:number = await fetchItems(campaign['id']) //TODO
-        //console.log(`Items word count: ${itemWC}`)
+        //log(`Items word count: ${itemWC}`)
         //let famiWC:number = await fetchFamilies(campaign['id']) //TODO
-        //console.log(`Families word count: ${famiWC}`)
-        //console.log('call out')
-        console.log(`Total word count: ${charWC + locaWC /*+ abilWC + orgsWC + itemWC + famiWC*/}`)
-        console.log(`${!reverse ? 'Highest' : 'Lowest'} wordcount entries:`)
-        highest.forEach((el, idx) => {
-            console.log(`${idx+1}. ${el.name}: ${el.wc}`)
-        });
+        //log(`Families word count: ${famiWC}`)
+        //log('call out')
+        log(`Total word count: ${charWC + locaWC /*+ abilWC + orgsWC + itemWC + famiWC*/}`)
+	if(ranking_len != 0) {
+		log(`${!reverse && ranking_len > 0 ? 'Highest' : 'Lowest'} wordcount entries:`)
+        	highest.slice(...(ranking_len > 0 ? [0, ranking_len] : [ranking_len])).forEach((el, idx) => {
+            	log(`${ranking_len > 0 ? idx+1: highest.length+(-ranking_len < highest.length ? ranking_len : -highest.length)+idx+1}. ${el.name}: ${el.wc}`)
+        	});
+	}
     }
 }
 
 async function fetchCharacters(id:Number) {
-    //console.log(id)
+    //log(id)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/characters?related=1` , {
         method: 'GET',
         headers: {
@@ -177,7 +183,7 @@ async function fetchCharacters(id:Number) {
 }
 
 async function fetchLocations(id:Number) {
-    //console.log(id)
+    //log(id)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/locations?related=1` , {
         method: 'GET',
         headers: {
@@ -188,7 +194,7 @@ async function fetchLocations(id:Number) {
     const data = await response.json()
     let wordcount:number = 0;
     for(var location of data.data) {
-        //console.log(location)
+        //log(location)
         var name_wc = 0
         var entry_wc = 0
         var post_wc = 0
@@ -213,7 +219,7 @@ async function fetchLocations(id:Number) {
     return wordcount
 }
 async function fetchAbilities(id:Number) {
-	//console.log(id)
+	//log(id)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/abilities?related=1` , {
         method: 'GET',
         headers: {
@@ -224,7 +230,7 @@ async function fetchAbilities(id:Number) {
     const data = await response.json()
     let wordcount:number = 0;
     for(var location of data.data) {
-        //console.log(location)
+        //log(location)
         var name_wc = 0
         var entry_wc = 0
         var post_wc = 0
@@ -249,7 +255,7 @@ async function fetchAbilities(id:Number) {
     return wordcount
 }
 async function fetchItems(id:Number) {
-    //console.log(id)
+    //log(id)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/items?related=1` , {
         method: 'GET',
         headers: {
@@ -260,7 +266,7 @@ async function fetchItems(id:Number) {
     const data = await response.json()
     let wordcount:number = 0;
     for(var location of data.data) {
-        //console.log(location)
+        //log(location)
         var name_wc = 0
         var entry_wc = 0
         var post_wc = 0
@@ -286,7 +292,7 @@ async function fetchItems(id:Number) {
     
 }
 async function fetchOrganisations(id:Number) {
-    //console.log(id)
+    //log(id)
 	const response = await fetch(process.env.API_BASE + `campaigns/${id}/organisations?related=1` , {
         method: 'GET',
         headers: {
@@ -297,7 +303,7 @@ async function fetchOrganisations(id:Number) {
     const data = await response.json()
     let wordcount:number = 0;
     for(var location of data.data) {
-        //console.log(location)
+        //log(location)
         var name_wc = 0
         var entry_wc = 0
         var post_wc = 0
@@ -323,7 +329,7 @@ async function fetchOrganisations(id:Number) {
     
 }
 async function fetchFamilies(id:Number) {
-    //console.log(id)
+    //log(id)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/families?related=1` , {
         method: 'GET',
         headers: {
@@ -334,7 +340,7 @@ async function fetchFamilies(id:Number) {
     const data = await response.json()
     let wordcount:number = 0;
     for(var location of data.data) {
-        //console.log(location)
+        //log(location)
         var name_wc = 0
         var entry_wc = 0
         var post_wc = 0
