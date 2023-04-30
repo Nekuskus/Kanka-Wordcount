@@ -1,6 +1,7 @@
 require('dotenv').config()
 import { exit } from "node:process";
 import { parseArgs } from "node:util";
+const fs = require('fs');
 
 const {
     values: { verbose, output, quiet, list_length, reverse, help, objects, no_attributes, parent }
@@ -154,8 +155,10 @@ async function fetchCharacters(id: Number) {
         }
     })
     const data = await response.json()
+    fs.writeFileSync('out.json',JSON.stringify(data), {flag: 'a'})
     let wordcount: number = 0;
     for (var character of data.data) {
+        console.log(character.name)
         var name_wc = 0
         var entry_wc = 0
         var post_wc = 0
@@ -192,8 +195,10 @@ async function fetchLocations(id: Number) {
         }
     })
     const data = await response.json()
+    fs.writeFileSync('out.json',JSON.stringify(data), {flag: 'a'})
     let wordcount: number = 0;
     for (var location of data.data) {
+        console.log(location.name)
         //log(location)
         var name_wc = 0
         var entry_wc = 0
