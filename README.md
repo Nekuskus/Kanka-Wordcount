@@ -5,7 +5,7 @@ By default writes to standard output.
 
 ## Usage:
 ```ts
-npx ts-node index.ts [OPTIONS] [-O all|characters,locations,notes,items,...]
+npx ts-node index.ts [OPTIONS] [-l N] [-O all|characters,locations,notes,items,...]
 ```
 
 ## Configuration: 
@@ -17,11 +17,11 @@ API_BASE=[preffered kanka.io API version's base url, 1.0: https://kanka.io/api/1
 ```
 ## Options:
     -h, --help              display this message
-    -l, --list_length       length of the highest wordcount ranking, pass 0 to omit it, also works with negative numbers
+    -l, --list_length       length of the highest wordcount ranking, pass 0 to omit it, also works with negative numbers (default: 10)
     -n, --no_attributes     omit atrributes (age, gender, type, pronouns... + attributes tab)
     -o, --output            entries are also written to out.json in the working directory
     -O, --objects           specify objects to be included (default: all)
     -p, --parent            include parent object's name in the calculations
     -r, --reverse           display N lowest instead of N highest entries
     -q, --quiet             display nothing in terminal, to be used with -o
-    -v, --verbose           ?????? not yet implemented
+    -v, --verbose           writes api calls to standard output with time taken
