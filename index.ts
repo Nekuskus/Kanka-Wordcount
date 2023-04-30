@@ -48,8 +48,15 @@ const {
     }
 })
 
-function log(str: string) {
+function log(str: any) {
+    str = str.toString()
     if (!quiet) console.log(str)
+}
+
+
+function v_log(str: any) { //verbose log
+    str = str.toString()
+    if (verbose) console.log(`%c${str}`, 'color:gray; font-style:italic;')
 }
 
 if (help) {
@@ -72,7 +79,7 @@ if (help) {
         -p, --parent            include parent object's name in the calculations
         -r, --reverse           display N lowest instead of N highest entries
         -q, --quiet             display nothing in terminal, to be used with -o
-        -v, --verbose           writes api calls to standard output with time taken
+        -v, --verbose           writes api calls to standard output with time tak   en
     `
     log(helptext)
     exit()
@@ -136,57 +143,78 @@ async function fetchCampaigns() {
         //log(`Families word count: ${famiWC}`)
         //log('call out')
         log(`Total word count: ${charWC + locaWC /*+ abilWC + orgsWC + itemWC + famiWC*/}`)
-        if (ranking_len != 0) {
-            log(`${!reverse && ranking_len > 0 ? 'Highest' : 'Lowest'} wordcount entries:`)
-            highest.slice(...(ranking_len > 0 ? [0, ranking_len] : [ranking_len])).forEach((el, idx) => {
-                log(`${ranking_len > 0 ? idx + 1 : highest.length + (-ranking_len < highest.length ? ranking_len : -highest.length) + idx + 1}. ${el.name}: ${el.wc}`)
-            });
+        if(list_length) {
+            if (ranking_len != 0) {
+                log(`${!reverse && ranking_len > 0 ? 'Highest' : 'Lowest'} wordcount entries:`)
+                highest.slice(...(ranking_len > 0 ? [0, ranking_len] : [ranking_len])).forEach((el, idx) => {
+                    log(`${ranking_len > 0 ? idx + 1 : highest.length + (-ranking_len < highest.length ? ranking_len : -highest.length) + idx + 1}. ${el.name}: ${el.wc}`)
+                });
+            }
         }
     }
 }
 
 async function fetchCharacters(id: Number) {
     //log(id)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/characters?related=1`, {
+    v_log(`Querying page 1 of characters... (url: ${process.env.API_BASE + `campaigns/${id}/characters?related=1`})`)
+    var response = await fetch(process.env.API_BASE + `campaigns/${id}/characters?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
-    const data = await response.json()
-    fs.writeFileSync('out.json',JSON.stringify(data), {flag: 'a'})
+    var data = await response.json()
+    var new_data = null
+    //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
-    for (var character of data.data) {
-        console.log(character.name)
-        var name_wc = 0
-        var entry_wc = 0
-        var post_wc = 0
-        var title_wc = 0
-        if (character.name) name_wc = character.name.split(' ').length
-        if (character.title) title_wc = character.title.split(' ').length
-        if (character.entry) {
-            character.entry_sanitized = character.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-            entry_wc = character.entry_sanitized.split(' ').length
+    do {
+        if(new_data) {
+            data = new_data
         }
-        if (character.posts) {
-            for (var post of character.posts) {
-                if (post.name) {
-                    name_wc += post.name.split(' ').length
-                }
-                post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-                post_wc += post.entry_sanitized.split(' ').length
+        for (var character of data.data) {
+            //console.log(character.name)
+            var name_wc = 0
+            var entry_wc = 0
+            var post_wc = 0
+            var title_wc = 0
+            if (character.name) name_wc = character.name.split(' ').length
+            if (character.title) title_wc = character.title.split(' ').length
+            if (character.entry) {
+                character.entry_sanitized = character.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                entry_wc = character.entry_sanitized.split(' ').length
             }
+            if (character.posts) {
+                for (var post of character.posts) {
+                    if (post.name) {
+                        name_wc += post.name.split(' ').length
+                    }
+                    post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                    post_wc += post.entry_sanitized.split(' ').length
+                }
+            }
+            var total_wc = name_wc + entry_wc + post_wc + title_wc
+            wordcount += total_wc
+            placeInRanking(new Score("(character)   " + character.name, total_wc))
         }
-        var total_wc = name_wc + entry_wc + post_wc + title_wc
-        wordcount += total_wc
-        placeInRanking(new Score("(character)   " + character.name, total_wc))
-    }
+        if(data.links.next != null) {
+            v_log(`Querying page ${data.links.next.substr(-1)} of characters... (url: ${data.links.next + '&related=1'})`)
+            const new_response = await fetch(data.links.next + '&related=1', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Authorization': 'Bearer ' + process.env.API_KEY
+                }
+            })
+            new_data = await new_response.json()
+        }
+    } while (data.links.next != null)
     return wordcount
 }
 
 async function fetchLocations(id: Number) {
     //log(id)
+    v_log(`Querying page 1 of locations... (url: ${process.env.API_BASE + `campaigns/${id}/locations?related=1})`})`)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/locations?related=1`, {
         method: 'GET',
         headers: {
@@ -194,69 +222,106 @@ async function fetchLocations(id: Number) {
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
-    const data = await response.json()
-    fs.writeFileSync('out.json',JSON.stringify(data), {flag: 'a'})
+    var data = await response.json()
+    var new_data = null
+    //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
-    for (var location of data.data) {
-        console.log(location.name)
-        //log(location)
-        var name_wc = 0
-        var entry_wc = 0
-        var post_wc = 0
-        var type_wc = 0
-        if (location.name) name_wc += location.name.split(' ').length
-        if (location.entry) {
-            location.entry_sanitized = location.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-            entry_wc += location.entry_sanitized.split(' ').length
+    do {
+        if(new_data) {
+            data = new_data
         }
-        if (location.type) type_wc += location.type.split(' ').length
-        if (location.posts) {
-            for (var post of location.posts) {
-                if (post.name) name_wc += post.name.split(' ').length
-                post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-                post_wc += post.entry_sanitized.split(' ').length
+        for (var location of data.data) {
+            //console.log(location.name)
+            //log(location)
+            var name_wc = 0
+            var entry_wc = 0
+            var post_wc = 0
+            var type_wc = 0
+            if (location.name) name_wc += location.name.split(' ').length
+            if (location.entry) {
+                location.entry_sanitized = location.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                entry_wc += location.entry_sanitized.split(' ').length
             }
+            if (location.type) type_wc += location.type.split(' ').length
+            if (location.posts) {
+                for (var post of location.posts) {
+                    if (post.name) name_wc += post.name.split(' ').length
+                    post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                    post_wc += post.entry_sanitized.split(' ').length
+                }
+            }
+            var total_wc = name_wc + entry_wc + post_wc + type_wc
+            wordcount += total_wc
+            placeInRanking(new Score("(location)    " + location.name, total_wc))
         }
-        var total_wc = name_wc + entry_wc + post_wc + type_wc
-        wordcount += total_wc
-        placeInRanking(new Score("(location)    " + location.name, total_wc))
-    }
+        if(data.links.next != null) {
+            v_log(`Querying page ${data.links.next.substr(-1)} of locations... (url: ${data.links.next + '&related=1'})`)
+            const new_response = await fetch(data.links.next + '&related=1', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Authorization': 'Bearer ' + process.env.API_KEY
+                }
+            })
+            new_data = await new_response.json()
+        }
+    } while (data.links.next != null);
     return wordcount
 }
 async function fetchAbilities(id: Number) {
     //log(id)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/abilities?related=1`, {
+    v_log(`Querying page 1 of locations... (url: ${process.env.API_BASE + `campaigns/${id}/abilities?related=1})`})`)
+    const response = await fetch(process.env.API_BASE + `campaigns/${id}/ablities?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
-    const data = await response.json()
+    var data = await response.json()
+    var new_data = null
+    //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
-    for (var location of data.data) {
-        //log(location)
-        var name_wc = 0
-        var entry_wc = 0
-        var post_wc = 0
-        var type_wc = 0
-        if (location.name) name_wc += location.name.split(' ').length
-        if (location.entry) {
-            location.entry_sanitized = location.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-            entry_wc += location.entry_sanitized.split(' ').length
+    do {
+        if(new_data) {
+            data = new_data
         }
-        if (location.type) type_wc += location.type.split(' ').length
-        if (location.posts) {
-            for (var post of location.posts) {
-                if (post.name) name_wc += post.name.split(' ').length
-                post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-                post_wc += post.entry_sanitized.split(' ').length
+        for (var ability of data.data) {
+            //console.log(location.name)
+            //log(location)
+            var name_wc = 0
+            var entry_wc = 0
+            var post_wc = 0
+            var type_wc = 0
+            if (ability.name) name_wc += ability.name.split(' ').length
+            if (ability.entry) {
+                ability.entry_sanitized = ability.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                entry_wc += ability.entry_sanitized.split(' ').length
             }
+            if (ability.type) type_wc += ability.type.split(' ').length
+            if (ability.posts) {
+                for (var post of ability.posts) {
+                    if (post.name) name_wc += post.name.split(' ').length
+                    post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                    post_wc += post.entry_sanitized.split(' ').length
+                }
+            }
+            var total_wc = name_wc + entry_wc + post_wc + type_wc
+            wordcount += total_wc
+            placeInRanking(new Score("(ability)     " + ability.name, total_wc))
         }
-        var total_wc = name_wc + entry_wc + post_wc + type_wc
-        wordcount += total_wc
-        placeInRanking(new Score("(ability)     " + location.name, total_wc))
-    }
+        if(data.links.next != null) {
+            v_log(`Querying page ${data.links.next.substr(-1)} of abilities... (url: ${data.links.next + '&related=1'})`)
+            const new_response = await fetch(data.links.next + '&related=1', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Authorization': 'Bearer ' + process.env.API_KEY
+                }
+            })
+            new_data = await new_response.json()
+        }
+    } while (data.links.next != null);
     return wordcount
 }
 async function fetchItems(id: Number) {
