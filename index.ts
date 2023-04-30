@@ -131,16 +131,15 @@ async function fetchCampaigns() {
         log(`Character word count: ${charWC}`)
         let locaWC: number = await fetchLocations(campaign['id'])
         log(`Location word count: ${locaWC}`)
-        let abilWC:number = await fetchAbilities(campaign['id']) //TODO
+        let abilWC:number = await fetchAbilities(campaign['id'])
         log(`Abitilies word count: ${abilWC}`)
-        let orgsWC:number = await fetchOrganisations(campaign['id']) //TODO
+        let orgsWC:number = await fetchOrganisations(campaign['id'])
         log(`Organisations word count: ${orgsWC}`)
-        let itemWC:number = await fetchItems(campaign['id']) //TODO
+        let itemWC:number = await fetchItems(campaign['id'])
         log(`Items word count: ${itemWC}`)
-        //let famiWC:number = await fetchFamilies(campaign['id']) //TODO
-        //log(`Families word count: ${famiWC}`)
-        //log('call out')
-        log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC /* + famiWC*/}`)
+        let famiWC:number = await fetchFamilies(campaign['id'])
+        log(`Families word count: ${famiWC}`)
+        log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC}`)
         if(list_length) {
             if (ranking_len != 0) {
                 log(`${!reverse && ranking_len > 0 ? 'Highest' : 'Lowest'} wordcount entries:`)
@@ -446,6 +445,7 @@ async function fetchOrganisations(id: Number) {
 }
 async function fetchFamilies(id: Number) {
     //log(id)
+    v_log(`Querying page 1 of families... (url: ${process.env.API_BASE + `campaigns/${id}/families?related=1`})`)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/families?related=1`, {
         method: 'GET',
         headers: {
@@ -453,32 +453,50 @@ async function fetchFamilies(id: Number) {
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
-    const data = await response.json()
+    var data = await response.json()
+    var new_data = null
+    //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
-    for (var location of data.data) {
-        //log(location)
-        var name_wc = 0
-        var entry_wc = 0
-        var post_wc = 0
-        var type_wc = 0
-        if (location.name) name_wc += location.name.split(' ').length
-        if (location.entry) {
-            location.entry_sanitized = location.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-            entry_wc += location.entry_sanitized.split(' ').length
+    do {
+        if(new_data) {
+            data = new_data
         }
-        if (location.type) type_wc += location.type.split(' ').length
-        if (location.posts) {
-            for (var post of location.posts) {
-                if (post.name) name_wc += post.name.split(' ').length
-                post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-                post_wc += post.entry_sanitized.split(' ').length
+        for (var family of data.data) {
+            //console.log(location.name)
+            //log(location)
+            var name_wc = 0
+            var entry_wc = 0
+            var post_wc = 0
+            var type_wc = 0
+            if (family.name) name_wc += family.name.split(' ').length
+            if (family.entry) {
+                family.entry_sanitized = family.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                entry_wc += family.entry_sanitized.split(' ').length
             }
+            if (family.type) type_wc += family.type.split(' ').length
+            if (family.posts) {
+                for (var post of family.posts) {
+                    if (post.name) name_wc += post.name.split(' ').length
+                    post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                    post_wc += post.entry_sanitized.split(' ').length
+                }
+            }
+            var total_wc = name_wc + entry_wc + post_wc + type_wc
+            wordcount += total_wc
+            placeInRanking(new Score("(family)      " + family.name, total_wc))
         }
-        var total_wc = name_wc + entry_wc + post_wc + type_wc
-        wordcount += total_wc
-        placeInRanking(new Score("(family)      " + location.name, total_wc))
-    }
+        if(data.links.next != null) {
+            v_log(`Querying page ${data.links.next.substr(-1)} of families... (url: ${data.links.next + '&related=1'})`)
+            const new_response = await fetch(data.links.next + '&related=1', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Authorization': 'Bearer ' + process.env.API_KEY
+                }
+            })
+            new_data = await new_response.json()
+        }
+    } while (data.links.next != null);
     return wordcount
-
 }
 fetchCampaigns();
