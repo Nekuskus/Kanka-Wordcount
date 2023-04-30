@@ -340,7 +340,6 @@ async function fetchItems(id: Number) {
         if(new_data) {
             data = new_data
         }
-        log(data)
         for (var item of data.data) {
             //console.log(location.name)
             //log(location)
