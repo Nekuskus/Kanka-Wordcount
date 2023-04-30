@@ -139,7 +139,9 @@ async function fetchCampaigns() {
         log(`Items word count: ${itemWC}`)
         let famiWC:number = await fetchFamilies(campaign['id'])
         log(`Families word count: ${famiWC}`)
-        log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC}`)
+        let noteWC:number = await fetchNotes(campaign['id'])
+        log(`Notes word count: ${noteWC}\n`)
+        log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC + noteWC}`)
         if(list_length) {
             if (ranking_len != 0) {
                 log(`${!reverse && ranking_len > 0 ? 'Highest' : 'Lowest'} wordcount entries:`)
@@ -487,6 +489,54 @@ async function fetchFamilies(id: Number) {
         }
         if(data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of families... (url: ${data.links.next + '&related=1'})`)
+            const new_response = await fetch(data.links.next + '&related=1', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Authorization': 'Bearer ' + process.env.API_KEY
+                }
+            })
+            new_data = await new_response.json()
+        }
+    } while (data.links.next != null);
+    return wordcount
+}
+async function fetchNotes(id: Number) {
+    //log(id)
+    v_log(`Querying page 1 of notes... (url: ${process.env.API_BASE + `campaigns/${id}/notes?related=1`})`)
+    const response = await fetch(process.env.API_BASE + `campaigns/${id}/notes?related=1`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Authorization': 'Bearer ' + process.env.API_KEY
+        }
+    })
+    var data = await response.json()
+    var new_data = null
+    //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
+    let wordcount: number = 0;
+    do {
+        if(new_data) {
+            data = new_data
+        }
+        for (var note of data.data) {
+            //console.log(location.name)
+            //log(location)
+            var name_wc = 0
+            var entry_wc = 0
+            var type_wc = 0
+            if (note.name) name_wc += note.name.split(' ').length
+            if (note.entry) {
+                note.entry_sanitized = note.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                entry_wc += note.entry_sanitized.split(' ').length
+            }
+            if (note.type) type_wc += note.type.split(' ').length
+            var total_wc = name_wc + entry_wc + type_wc
+            wordcount += total_wc
+            placeInRanking(new Score("(note)        " + note.name, total_wc))
+        }
+        if(data.links.next != null) {
+            v_log(`Querying page ${data.links.next.substr(-1)} of notes... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
