@@ -27,7 +27,7 @@ const {
             type: "boolean",
             short: "r",
         },
-        help: { //IN-PROGRESS
+        help: { //IMPLEMENTED
             type: "boolean",
             short: "h",
         },
@@ -40,7 +40,7 @@ const {
             type: 'boolean',
             short: 'n'
         },
-        parent: {
+        parent: { //TODO
             type: 'boolean',
             short: 'p'
         }
