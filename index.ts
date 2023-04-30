@@ -49,14 +49,12 @@ const {
 })
 
 function log(str: any) {
-    str = str.toString()
     if (!quiet) console.log(str)
 }
 
 
 function v_log(str: any) { //verbose log
-    str = str.toString()
-    if (verbose) console.log(`%c${str}`, 'color:gray; font-style:italic;')
+    if (verbose) console.log(str)
 }
 
 if (help) {
@@ -133,16 +131,16 @@ async function fetchCampaigns() {
         log(`Character word count: ${charWC}`)
         let locaWC: number = await fetchLocations(campaign['id'])
         log(`Location word count: ${locaWC}`)
-        //let abilWC:number = await fetchAbilities(campaign['id']) //TODO
-        //log(`Abitilies word count: ${abilWC}`)
-        //let orgsWC:number = await fetchOrganisations(campaign['id']) //TODO
-        //log(`Organisations word count: ${orgsWC}`)
-        //let itemWC:number = await fetchItems(campaign['id']) //TODO
-        //log(`Items word count: ${itemWC}`)
+        let abilWC:number = await fetchAbilities(campaign['id']) //TODO
+        log(`Abitilies word count: ${abilWC}`)
+        let orgsWC:number = await fetchOrganisations(campaign['id']) //TODO
+        log(`Organisations word count: ${orgsWC}`)
+        let itemWC:number = await fetchItems(campaign['id']) //TODO
+        log(`Items word count: ${itemWC}`)
         //let famiWC:number = await fetchFamilies(campaign['id']) //TODO
         //log(`Families word count: ${famiWC}`)
         //log('call out')
-        log(`Total word count: ${charWC + locaWC /*+ abilWC + orgsWC + itemWC + famiWC*/}`)
+        log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC /* + famiWC*/}`)
         if(list_length) {
             if (ranking_len != 0) {
                 log(`${!reverse && ranking_len > 0 ? 'Highest' : 'Lowest'} wordcount entries:`)
@@ -155,7 +153,6 @@ async function fetchCampaigns() {
 }
 
 async function fetchCharacters(id: Number) {
-    //log(id)
     v_log(`Querying page 1 of characters... (url: ${process.env.API_BASE + `campaigns/${id}/characters?related=1`})`)
     var response = await fetch(process.env.API_BASE + `campaigns/${id}/characters?related=1`, {
         method: 'GET',
@@ -214,7 +211,7 @@ async function fetchCharacters(id: Number) {
 
 async function fetchLocations(id: Number) {
     //log(id)
-    v_log(`Querying page 1 of locations... (url: ${process.env.API_BASE + `campaigns/${id}/locations?related=1})`})`)
+    v_log(`Querying page 1 of locations... (url: ${process.env.API_BASE + `campaigns/${id}/locations?related=1`})`)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/locations?related=1`, {
         method: 'GET',
         headers: {
@@ -265,13 +262,14 @@ async function fetchLocations(id: Number) {
             })
             new_data = await new_response.json()
         }
+        //v_log(JSON.parse(JSON.stringify(data.links)))
     } while (data.links.next != null);
     return wordcount
 }
 async function fetchAbilities(id: Number) {
     //log(id)
-    v_log(`Querying page 1 of locations... (url: ${process.env.API_BASE + `campaigns/${id}/abilities?related=1})`})`)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/ablities?related=1`, {
+    v_log(`Querying page 1 of abilities... (url: ${process.env.API_BASE + `campaigns/${id}/abilities?related=1`})`)
+    const response = await fetch(process.env.API_BASE + `campaigns/${id}/abilities?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -326,6 +324,7 @@ async function fetchAbilities(id: Number) {
 }
 async function fetchItems(id: Number) {
     //log(id)
+    v_log(`Querying page 1 of items... (url: ${process.env.API_BASE + `campaigns/${id}/items?related=1`})`)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/items?related=1`, {
         method: 'GET',
         headers: {
@@ -333,36 +332,60 @@ async function fetchItems(id: Number) {
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
-    const data = await response.json()
+    var data = await response.json()
+    var new_data = null
+    //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
-    for (var location of data.data) {
-        //log(location)
-        var name_wc = 0
-        var entry_wc = 0
-        var post_wc = 0
-        var type_wc = 0
-        if (location.name) name_wc += location.name.split(' ').length
-        if (location.entry) {
-            location.entry_sanitized = location.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-            entry_wc += location.entry_sanitized.split(' ').length
+    do {
+        if(new_data) {
+            data = new_data
         }
-        if (location.type) type_wc += location.type.split(' ').length
-        if (location.posts) {
-            for (var post of location.posts) {
-                if (post.name) name_wc += post.name.split(' ').length
-                post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-                post_wc += post.entry_sanitized.split(' ').length
+        log(data)
+        for (var item of data.data) {
+            //console.log(location.name)
+            //log(location)
+            var name_wc = 0
+            var entry_wc = 0
+            var post_wc = 0
+            var type_wc = 0
+            var price_wc = 0
+            var size_wc = 0
+            if (item.name) name_wc += item.name.split(' ').length
+            if (item.entry) {
+                item.entry_sanitized = item.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                entry_wc += item.entry_sanitized.split(' ').length
             }
+            if (item.type) type_wc += item.type.split(' ').length
+            if (item.posts) {
+                for (var post of item.posts) {
+                    if (post.name) name_wc += post.name.split(' ').length
+                    post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                    post_wc += post.entry_sanitized.split(' ').length
+                }
+            }
+            if(item.price) price_wc += item.price.split(' ').length
+            if(item.size) size_wc += item.size.split(' ').length
+            var total_wc = name_wc + entry_wc + post_wc + type_wc + price_wc + size_wc
+            wordcount += total_wc
+            placeInRanking(new Score("(item)        " + item.name, total_wc))
         }
-        var total_wc = name_wc + entry_wc + post_wc + type_wc
-        wordcount += total_wc
-        placeInRanking(new Score("(item)        " + location.name, total_wc))
-    }
+        if(data.links.next != null) {
+            v_log(`Querying page ${data.links.next.substr(-1)} of items... (url: ${data.links.next + '&related=1'})`)
+            const new_response = await fetch(data.links.next + '&related=1', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Authorization': 'Bearer ' + process.env.API_KEY
+                }
+            })
+            new_data = await new_response.json()
+        }
+    } while (data.links.next != null);
     return wordcount
-
 }
 async function fetchOrganisations(id: Number) {
     //log(id)
+    v_log(`Querying page 1 of organisations... (url: ${process.env.API_BASE + `campaigns/${id}/organisations?related=1`})`)
     const response = await fetch(process.env.API_BASE + `campaigns/${id}/organisations?related=1`, {
         method: 'GET',
         headers: {
@@ -370,33 +393,57 @@ async function fetchOrganisations(id: Number) {
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
-    const data = await response.json()
+    var data = await response.json()
+    var new_data = null
+    //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
-    for (var location of data.data) {
-        //log(location)
-        var name_wc = 0
-        var entry_wc = 0
-        var post_wc = 0
-        var type_wc = 0
-        if (location.name) name_wc += location.name.split(' ').length
-        if (location.entry) {
-            location.entry_sanitized = location.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-            entry_wc += location.entry_sanitized.split(' ').length
+    do {
+        if(new_data) {
+            data = new_data
         }
-        if (location.type) type_wc += location.type.split(' ').length
-        if (location.posts) {
-            for (var post of location.posts) {
-                if (post.name) name_wc += post.name.split(' ').length
-                post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
-                post_wc += post.entry_sanitized.split(' ').length
+        for (var organisation of data.data) {
+            //console.log(location.name)
+            //log(location)
+            var name_wc = 0
+            var entry_wc = 0
+            var post_wc = 0
+            var type_wc = 0
+            var members_wc = 0
+            if (organisation.name) name_wc += organisation.name.split(' ').length
+            if (organisation.entry) {
+                organisation.entry_sanitized = organisation.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                entry_wc += organisation.entry_sanitized.split(' ').length
             }
+            if (organisation.type) type_wc += organisation.type.split(' ').length
+            if (organisation.posts) {
+                for (var post of organisation.posts) {
+                    if (post.name) name_wc += post.name.split(' ').length
+                    post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                    post_wc += post.entry_sanitized.split(' ').length
+                }
+            }
+            if(organisation.members) {
+                for(var member of organisation.members) {
+                    if(member.role) members_wc += member.role.split(' ').length
+                }
+            }
+            var total_wc = name_wc + entry_wc + post_wc + type_wc + members_wc
+            wordcount += total_wc
+            placeInRanking(new Score("(organisation)" + organisation.name, total_wc))
         }
-        var total_wc = name_wc + entry_wc + post_wc + type_wc
-        wordcount += total_wc
-        placeInRanking(new Score("(organisation) " + location.name, total_wc))
-    }
+        if(data.links.next != null) {
+            v_log(`Querying page ${data.links.next.substr(-1)} of organisations... (url: ${data.links.next + '&related=1'})`)
+            const new_response = await fetch(data.links.next + '&related=1', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Authorization': 'Bearer ' + process.env.API_KEY
+                }
+            })
+            new_data = await new_response.json()
+        }
+    } while (data.links.next != null);
     return wordcount
-
 }
 async function fetchFamilies(id: Number) {
     //log(id)
