@@ -131,24 +131,24 @@ async function fetchCampaigns() {
         log(`Character word count: ${charWC}`)
         let locaWC: number = await fetchLocations(campaign['id'])
         log(`Location word count: ${locaWC}`)
-        let abilWC:number = await fetchAbilities(campaign['id'])
+        let abilWC: number = await fetchAbilities(campaign['id'])
         log(`Abitilies word count: ${abilWC}`)
-        let orgsWC:number = await fetchOrganisations(campaign['id'])
+        let orgsWC: number = await fetchOrganisations(campaign['id'])
         log(`Organisations word count: ${orgsWC}`)
-        let itemWC:number = await fetchItems(campaign['id'])
+        let itemWC: number = await fetchItems(campaign['id'])
         log(`Items word count: ${itemWC}`)
-        let famiWC:number = await fetchFamilies(campaign['id'])
+        let famiWC: number = await fetchFamilies(campaign['id'])
         log(`Families word count: ${famiWC}`)
-        let noteWC:number = await fetchNotes(campaign['id'])
+        let noteWC: number = await fetchNotes(campaign['id'])
         log(`Notes word count: ${noteWC}`)
-        let evntWC:number = await fetchEvents(campaign['id'])
+        let evntWC: number = await fetchEvents(campaign['id'])
         log(`Events word count: ${evntWC}`)
-        let quesWC:number = await fetchQuests(campaign['id'])
+        let quesWC: number = await fetchQuests(campaign['id'])
         log(`Quests word count: ${quesWC}`)
         log('')
         log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC + noteWC + evntWC + quesWC}`)
-	log(`Total object count: ${highest.length}`)
-	if(list_length) {
+        log(`Total object count: ${highest.length}`)
+        if (list_length) {
             if (ranking_len != 0) {
                 log(`${!reverse && ranking_len > 0 ? 'Highest' : 'Lowest'} wordcount entries:`)
                 highest.slice(...(ranking_len > 0 ? [0, ranking_len] : [ranking_len])).forEach((el, idx) => {
@@ -173,7 +173,7 @@ async function fetchCharacters(id: Number) {
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
     do {
-        if(new_data) {
+        if (new_data) {
             data = new_data
         }
         for (var character of data.data) {
@@ -202,7 +202,7 @@ async function fetchCharacters(id: Number) {
             placeInRanking(new Score("(character)   " + character.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
-        if(data.links.next != null) {
+        if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of characters... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
@@ -232,7 +232,7 @@ async function fetchLocations(id: Number) {
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
     do {
-        if(new_data) {
+        if (new_data) {
             data = new_data
         }
         for (var location of data.data) {
@@ -260,7 +260,7 @@ async function fetchLocations(id: Number) {
             placeInRanking(new Score("(location)    " + location.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
-        if(data.links.next != null) {
+        if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of locations... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
@@ -290,7 +290,7 @@ async function fetchAbilities(id: Number) {
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
     do {
-        if(new_data) {
+        if (new_data) {
             data = new_data
         }
         for (var ability of data.data) {
@@ -318,7 +318,7 @@ async function fetchAbilities(id: Number) {
             placeInRanking(new Score("(ability)     " + ability.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
-        if(data.links.next != null) {
+        if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of abilities... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
@@ -347,7 +347,7 @@ async function fetchItems(id: Number) {
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
     do {
-        if(new_data) {
+        if (new_data) {
             data = new_data
         }
         for (var item of data.data) {
@@ -372,14 +372,14 @@ async function fetchItems(id: Number) {
                     post_wc += post.entry_sanitized.split(' ').length
                 }
             }
-            if(item.price) price_wc += item.price.split(' ').length
-            if(item.size) size_wc += item.size.split(' ').length
+            if (item.price) price_wc += item.price.split(' ').length
+            if (item.size) size_wc += item.size.split(' ').length
             var total_wc = name_wc + entry_wc + post_wc + type_wc + price_wc + size_wc
             wordcount += total_wc
             placeInRanking(new Score("(item)        " + item.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
-        if(data.links.next != null) {
+        if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of items... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
@@ -408,7 +408,7 @@ async function fetchOrganisations(id: Number) {
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
     do {
-        if(new_data) {
+        if (new_data) {
             data = new_data
         }
         for (var organisation of data.data) {
@@ -432,9 +432,9 @@ async function fetchOrganisations(id: Number) {
                     post_wc += post.entry_sanitized.split(' ').length
                 }
             }
-            if(organisation.members) {
-                for(var member of organisation.members) {
-                    if(member.role) members_wc += member.role.split(' ').length
+            if (organisation.members) {
+                for (var member of organisation.members) {
+                    if (member.role) members_wc += member.role.split(' ').length
                 }
             }
             var total_wc = name_wc + entry_wc + post_wc + type_wc + members_wc
@@ -442,7 +442,7 @@ async function fetchOrganisations(id: Number) {
             placeInRanking(new Score("(organisation)" + organisation.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
-        if(data.links.next != null) {
+        if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of organisations... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
@@ -471,7 +471,7 @@ async function fetchFamilies(id: Number) {
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
     do {
-        if(new_data) {
+        if (new_data) {
             data = new_data
         }
         for (var family of data.data) {
@@ -499,7 +499,7 @@ async function fetchFamilies(id: Number) {
             placeInRanking(new Score("(family)      " + family.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
-        if(data.links.next != null) {
+        if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of families... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
@@ -528,7 +528,7 @@ async function fetchNotes(id: Number) {
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
     do {
-        if(new_data) {
+        if (new_data) {
             data = new_data
         }
         for (var note of data.data) {
@@ -548,7 +548,7 @@ async function fetchNotes(id: Number) {
             placeInRanking(new Score("(note)        " + note.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
-        if(data.links.next != null) {
+        if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of notes... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
@@ -577,7 +577,7 @@ async function fetchEvents(id: Number) {
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
     do {
-        if(new_data) {
+        if (new_data) {
             data = new_data
         }
         for (var event of data.data) {
@@ -604,7 +604,7 @@ async function fetchEvents(id: Number) {
             placeInRanking(new Score("(event)   " + event.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
-        if(data.links.next != null) {
+        if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of events... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
@@ -635,7 +635,7 @@ async function fetchQuests(id: Number) {
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
     do {
-        if(new_data) {
+        if (new_data) {
             data = new_data
         }
         for (var quest of data.data) {
@@ -662,7 +662,7 @@ async function fetchQuests(id: Number) {
             placeInRanking(new Score("(quest)   " + quest.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
-        if(data.links.next != null) {
+        if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of quests... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
                 method: 'GET',
