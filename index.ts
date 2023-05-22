@@ -147,7 +147,8 @@ async function fetchCampaigns() {
         log(`Quests word count: ${quesWC}`)
         log('')
         log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC + noteWC + evntWC + quesWC}`)
-        if(list_length) {
+	log(`Total object count: ${highest.length}`)
+	if(list_length) {
             if (ranking_len != 0) {
                 log(`${!reverse && ranking_len > 0 ? 'Highest' : 'Lowest'} wordcount entries:`)
                 highest.slice(...(ranking_len > 0 ? [0, ranking_len] : [ranking_len])).forEach((el, idx) => {
