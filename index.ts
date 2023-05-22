@@ -196,6 +196,7 @@ async function fetchCharacters(id: Number) {
             wordcount += total_wc
             placeInRanking(new Score("(character)   " + character.name, total_wc))
         }
+        v_log(`Next is: ${data.links.next}`)
         if(data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of characters... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
@@ -253,6 +254,7 @@ async function fetchLocations(id: Number) {
             wordcount += total_wc
             placeInRanking(new Score("(location)    " + location.name, total_wc))
         }
+        v_log(`Next is: ${data.links.next}`)
         if(data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of locations... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
@@ -310,6 +312,7 @@ async function fetchAbilities(id: Number) {
             wordcount += total_wc
             placeInRanking(new Score("(ability)     " + ability.name, total_wc))
         }
+        v_log(`Next is: ${data.links.next}`)
         if(data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of abilities... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
@@ -370,6 +373,7 @@ async function fetchItems(id: Number) {
             wordcount += total_wc
             placeInRanking(new Score("(item)        " + item.name, total_wc))
         }
+        v_log(`Next is: ${data.links.next}`)
         if(data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of items... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
@@ -432,6 +436,7 @@ async function fetchOrganisations(id: Number) {
             wordcount += total_wc
             placeInRanking(new Score("(organisation)" + organisation.name, total_wc))
         }
+        v_log(`Next is: ${data.links.next}`)
         if(data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of organisations... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
@@ -488,6 +493,7 @@ async function fetchFamilies(id: Number) {
             wordcount += total_wc
             placeInRanking(new Score("(family)      " + family.name, total_wc))
         }
+        v_log(`Next is: ${data.links.next}`)
         if(data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of families... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
@@ -536,6 +542,7 @@ async function fetchNotes(id: Number) {
             wordcount += total_wc
             placeInRanking(new Score("(note)        " + note.name, total_wc))
         }
+        v_log(`Next is: ${data.links.next}`)
         if(data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of notes... (url: ${data.links.next + '&related=1'})`)
             const new_response = await fetch(data.links.next + '&related=1', {
