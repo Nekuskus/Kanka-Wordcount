@@ -601,7 +601,7 @@ async function fetchEvents(id: Number) {
             }
             var total_wc = name_wc + entry_wc + post_wc
             wordcount += total_wc
-            placeInRanking(new Score("(event)   " + event.name, total_wc))
+            placeInRanking(new Score("(event)       " + event.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
@@ -659,7 +659,7 @@ async function fetchQuests(id: Number) {
             }
             var total_wc = name_wc + entry_wc + post_wc
             wordcount += total_wc
-            placeInRanking(new Score("(quest)   " + quest.name, total_wc))
+            placeInRanking(new Score("(quest)       " + quest.name, total_wc))
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
