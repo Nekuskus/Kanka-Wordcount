@@ -124,7 +124,9 @@ async function fetchCampaigns() {
     })
     const { data, error } = await response.json()
     //log(data)
+    var i: number = 0
     for (var campaign of data) {
+        if(i > 0) log('')
         //log(campaign)
         log(`======Campaign: ${campaign['name']} (${campaign['id']})======`)
         let charWC: number = await fetchCharacters(campaign['id'])
@@ -145,8 +147,10 @@ async function fetchCampaigns() {
         log(`Events word count: ${evntWC}`)
         let quesWC: number = await fetchQuests(campaign['id'])
         log(`Quests word count: ${quesWC}`)
+        let caleWC: number = await fetchCalendars(campaign['id'])
+        log(`Quests word count: ${quesWC}`)
         log('')
-        log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC + noteWC + evntWC + quesWC}`)
+        log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC + noteWC + evntWC + quesWC + caleWC}`)
         log(`Total object count: ${highest.length}`)
         if (list_length) {
             if (ranking_len != 0) {
@@ -156,6 +160,8 @@ async function fetchCampaigns() {
                 });
             }
         }
+        i+= 1;
+        highest = []
     }
 }
 
@@ -619,8 +625,6 @@ async function fetchEvents(id: Number) {
     return wordcount
 }
 
-
-
 async function fetchQuests(id: Number) {
     v_log(`Querying page 1 of quests... (url: ${process.env.API_BASE + `campaigns/${id}/quests?related=1`})`)
     var response = await fetch(process.env.API_BASE + `campaigns/${id}/quests?related=1`, {
@@ -676,6 +680,102 @@ async function fetchQuests(id: Number) {
     } while (data.links.next != null)
     return wordcount
 }
+
+async function fetchCalendars(id: Number) {
+    v_log(`Querying page 1 of calendars... (url: ${process.env.API_BASE + `campaigns/${id}/calendars?related=1`})`)
+    var response = await fetch(process.env.API_BASE + `campaigns/${id}/calendars?related=1`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Authorization': 'Bearer ' + process.env.API_KEY
+        }
+    })
+    var data = await response.json()
+    var new_data = null
+    //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
+    let wordcount: number = 0;
+    do {
+        if (new_data) {
+            data = new_data
+        }
+        for (var calendar of data.data) {
+            //console.log(calendar.name)
+            var name_wc = 0
+            var entry_wc = 0
+            var posts_wc = 0 // Non-existent in the GUI, returned by api even though undocumente
+            var months_wc = 0
+            var moons_wc = 0
+            var suffix_wc = 0
+            var weekdays_wc = 0
+            var seasons_wc = 0
+            var years_wc = 0
+            if (calendar.name) name_wc = calendar.name.split(' ').length
+            if (calendar.entry) {
+                calendar.entry_sanitized = calendar.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                entry_wc = calendar.entry_sanitized.split(' ').length
+            }
+            if (calendar.posts) {
+                for (var post of calendar.posts) {
+                    if (post.name) {
+                        name_wc += post.name.split(' ').length
+                    }
+                    post.entry_sanitized = post.entry.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '');
+                    posts_wc += post.entry_sanitized.split(' ').length
+                }
+            }
+            if (calendar.months) {
+                for (var month of calendar.months) {
+                    if (month.name) {
+                        name_wc += month.name.split(' ').length
+                    }
+                    if (month.alias) {
+                        name_wc += month.alias.split(' ').length
+                    }
+                }
+            }
+            if (calendar.weekdays) {
+                for (var day of calendar.weekdays) {
+                    name_wc += day.split(' ').length
+                }
+            }
+            if(calendar.years) {
+                for (var year in calendar.years) {
+                    years_wc += year.split(' ').length
+                    years_wc += calendar.years[year].split(' ').length
+                }
+            }
+            if(calendar.suffix) suffix_wc += calendar.suffix.split(' ').length
+            if(calendar.moons) {
+                for (var moon of calendar.moons) {
+                    moons_wc += moon.name.split(' ').length
+                    moons_wc += moon.colour.split(' ').length
+                }
+            }
+            if(calendar.seasons) {
+                for (var season of calendar.seasons) {
+                    seasons_wc += season.name.split(' ').length
+                }
+            }
+            var total_wc = name_wc + entry_wc + posts_wc + months_wc + moons_wc + suffix_wc + weekdays_wc + seasons_wc + years_wc
+            wordcount += total_wc
+            placeInRanking(new Score("(calendar)    " + calendar.name, total_wc))
+        }
+        v_log(`Next is: ${data.links.next}`)
+        if (data.links.next != null) {
+            v_log(`Querying page ${data.links.next.substr(-1)} of calendars... (url: ${data.links.next + '&related=1'})`)
+            const new_response = await fetch(data.links.next + '&related=1', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Authorization': 'Bearer ' + process.env.API_KEY
+                }
+            })
+            new_data = await new_response.json()
+        }
+    } while (data.links.next != null)
+    return wordcount
+}
+
 
 
 fetchCampaigns();
