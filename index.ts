@@ -148,7 +148,7 @@ async function fetchCampaigns() {
         let quesWC: number = await fetchQuests(campaign['id'])
         log(`Quests word count: ${quesWC}`)
         let caleWC: number = await fetchCalendars(campaign['id'])
-        log(`Quests word count: ${quesWC}`)
+        log(`Calendars word count: ${caleWC}`)
         log('')
         log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC + noteWC + evntWC + quesWC + caleWC}`)
         log(`Total object count: ${highest.length}`)
