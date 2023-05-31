@@ -1,9 +1,28 @@
 require('dotenv').config()
 import { time } from "node:console";
-import { type } from "node:os";
 import { exit } from "node:process";
 import { parseArgs } from "node:util";
 const fs = require('fs');
+const retry = require('async-await-retry');
+
+var api_call_count = 0
+
+async function fetchWrapper(url: string, options: any) {
+    api_call_count += 1
+    //console.log(api_call_count)
+    if (api_call_count == 29) {
+        api_call_count = 0
+        var ret_val: any
+        await new Promise((res) => {
+            setTimeout(() => { ret_val = fetchWrapper(url, options) }, 60 * 1000)
+        });
+        return ret_val
+    } else {
+        var promise = fetch(url, options)
+        promise.catch(err => { console.log(`Fetch failed: ${err}`) })
+        return promise
+    }
+}
 
 const {
     values: { verbose, output, quiet, list_length, reverse, help, objects, no_attributes, parent }
@@ -117,7 +136,7 @@ function placeInRanking(score: Score) {
 }
 
 async function fetchCampaigns() {
-    const response = await fetch(process.env.API_BASE + 'campaigns', {
+    const response = await fetchWrapper(process.env.API_BASE + 'campaigns', {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -181,7 +200,7 @@ async function fetchCampaigns() {
 
 async function fetchCharacters(id: Number) {
     v_log(`Querying page 1 of characters... (url: ${process.env.API_BASE + `campaigns/${id}/characters?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/characters?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/characters?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -224,7 +243,7 @@ async function fetchCharacters(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of characters... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -240,7 +259,7 @@ async function fetchCharacters(id: Number) {
 async function fetchLocations(id: Number) {
     //log(id)
     v_log(`Querying page 1 of locations... (url: ${process.env.API_BASE + `campaigns/${id}/locations?related=1`})`)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/locations?related=1`, {
+    const response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/locations?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -282,7 +301,7 @@ async function fetchLocations(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of locations... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -298,7 +317,7 @@ async function fetchLocations(id: Number) {
 async function fetchAbilities(id: Number) {
     //log(id)
     v_log(`Querying page 1 of abilities... (url: ${process.env.API_BASE + `campaigns/${id}/abilities?related=1`})`)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/abilities?related=1`, {
+    const response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/abilities?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -340,7 +359,7 @@ async function fetchAbilities(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of abilities... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -355,7 +374,7 @@ async function fetchAbilities(id: Number) {
 async function fetchItems(id: Number) {
     //log(id)
     v_log(`Querying page 1 of items... (url: ${process.env.API_BASE + `campaigns/${id}/items?related=1`})`)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/items?related=1`, {
+    const response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/items?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -401,7 +420,7 @@ async function fetchItems(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of items... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -416,7 +435,7 @@ async function fetchItems(id: Number) {
 async function fetchOrganisations(id: Number) {
     //log(id)
     v_log(`Querying page 1 of organisations... (url: ${process.env.API_BASE + `campaigns/${id}/organisations?related=1`})`)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/organisations?related=1`, {
+    const response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/organisations?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -464,7 +483,7 @@ async function fetchOrganisations(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of organisations... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -479,7 +498,7 @@ async function fetchOrganisations(id: Number) {
 async function fetchFamilies(id: Number) {
     //log(id)
     v_log(`Querying page 1 of families... (url: ${process.env.API_BASE + `campaigns/${id}/families?related=1`})`)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/families?related=1`, {
+    const response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/families?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -521,7 +540,7 @@ async function fetchFamilies(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of families... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -536,7 +555,7 @@ async function fetchFamilies(id: Number) {
 async function fetchNotes(id: Number) {
     //log(id)
     v_log(`Querying page 1 of notes... (url: ${process.env.API_BASE + `campaigns/${id}/notes?related=1`})`)
-    const response = await fetch(process.env.API_BASE + `campaigns/${id}/notes?related=1`, {
+    const response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/notes?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -570,7 +589,7 @@ async function fetchNotes(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of notes... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -585,7 +604,7 @@ async function fetchNotes(id: Number) {
 
 async function fetchEvents(id: Number) {
     v_log(`Querying page 1 of events... (url: ${process.env.API_BASE + `campaigns/${id}/events?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/events?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/events?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -628,7 +647,7 @@ async function fetchEvents(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of events... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -643,7 +662,7 @@ async function fetchEvents(id: Number) {
 
 async function fetchQuests(id: Number) {
     v_log(`Querying page 1 of quests... (url: ${process.env.API_BASE + `campaigns/${id}/quests?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/quests?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/quests?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -686,7 +705,7 @@ async function fetchQuests(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of quests... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -701,7 +720,7 @@ async function fetchQuests(id: Number) {
 
 async function fetchCalendars(id: Number) {
     v_log(`Querying page 1 of calendars... (url: ${process.env.API_BASE + `campaigns/${id}/calendars?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/calendars?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/calendars?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -783,7 +802,7 @@ async function fetchCalendars(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of calendars... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -800,7 +819,7 @@ async function fetchCalendars(id: Number) {
 
 async function fetchRaces(id: Number) {
     v_log(`Querying page 1 of races... (url: ${process.env.API_BASE + `campaigns/${id}/races?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/races?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/races?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -843,7 +862,7 @@ async function fetchRaces(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of races... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -859,7 +878,7 @@ async function fetchRaces(id: Number) {
 
 async function fetchJournals(id: Number) {
     v_log(`Querying page 1 of journals... (url: ${process.env.API_BASE + `campaigns/${id}/journals?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/journals?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/journals?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -902,7 +921,7 @@ async function fetchJournals(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of journals... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -918,7 +937,7 @@ async function fetchJournals(id: Number) {
 
 async function fetchTags(id: Number) {
     v_log(`Querying page 1 of tags... (url: ${process.env.API_BASE + `campaigns/${id}/tags?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/tags?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/tags?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -963,7 +982,7 @@ async function fetchTags(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of tags... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -978,7 +997,7 @@ async function fetchTags(id: Number) {
 
 async function fetchCreatures(id: Number) {
     v_log(`Querying page 1 of creatures... (url: ${process.env.API_BASE + `campaigns/${id}/creatures?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/creatures?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/creatures?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -1021,7 +1040,7 @@ async function fetchCreatures(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of creatures... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -1036,7 +1055,7 @@ async function fetchCreatures(id: Number) {
 
 async function fetchTimelines(id: Number) {
     v_log(`Querying page 1 of timelines... (url: ${process.env.API_BASE + `campaigns/${id}/timelines?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/timelines?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/timelines?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -1112,7 +1131,7 @@ async function fetchTimelines(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of timelines... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -1127,7 +1146,7 @@ async function fetchTimelines(id: Number) {
 
 async function fetchMaps(id: Number) {
     v_log(`Querying page 1 of maps... (url: ${process.env.API_BASE + `campaigns/${id}/maps?related=1`})`)
-    var response = await fetch(process.env.API_BASE + `campaigns/${id}/maps?related=1`, {
+    var response = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/maps?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
@@ -1182,7 +1201,7 @@ async function fetchMaps(id: Number) {
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
             v_log(`Querying page ${data.links.next.substr(-1)} of maps... (url: ${data.links.next + '&related=1'})`)
-            const new_response = await fetch(data.links.next + '&related=1', {
+            const new_response = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
