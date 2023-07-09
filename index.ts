@@ -3,24 +3,44 @@ import { time } from "node:console";
 import { exit } from "node:process";
 import { parseArgs } from "node:util";
 const fs = require('fs');
-const retry = require('async-await-retry');
 
-var api_call_count = 0
+var start_timestamp: number = null;
 
+// TODO: this will return the data json instead (or null if errors, or wait if delayed) after some refactoring is done
 async function fetchWrapper(url: string, options: any) {
-    api_call_count += 1
+    /*api_call_count += 1
     //console.log(api_call_count)
     if (api_call_count == 29) {
         api_call_count = 0
-        var ret_val: any
+        var ret_val: any = 123
         await new Promise((res) => {
-            setTimeout(() => { ret_val = fetchWrapper(url, options) }, 60 * 1000)
-        });
+            setTimeout(() => { console.log(ret_val); ret_val = fetchWrapper(url, options) }, 60 * 1000)
+        }).catch((err) => {
+                console.log(`Error in delayed API call: ${err}`)
+            }
+        );
+        console.log(ret_val)
         return ret_val
+    */
+    
+    var res = await fetch(url, options)
+
+    // Set start timestamp to wait for API rate limit refresh
+    if(!start_timestamp) start_timestamp = Date.now()
+
+    if(res.status == 429) {
+        //timeout here for 60s - (Date.now() - timestamp)
+        // timestamp == Date.now()
+        var response = await setTimeout((resolve, reject) => resolve(fetchWrapper(url, options)), 60 - (Date.now() - start_timestamp))
+        start_timestamp = Date.now()
+        return response.json()
+    } else if (!res.ok) {
+        err_log(`Request failed! Error code: ${res.status} ${res.statusText}`)
+        err_log(`Request url: ${url}`)
+        err_log(res)
+        exit(1)
     } else {
-        var promise = fetch(url, options)
-        promise.catch(err => { console.log(`Fetch failed: ${err}`) })
-        return promise
+        return res.json()
     }
 }
 
@@ -43,7 +63,7 @@ const {
         list_length: { //IMPLEMENTED
             type: "string",
             short: "l",
-            default: "10",
+            default: "all",
         },
         reverse: { //IMPLEMENTED
             type: "boolean",
@@ -78,6 +98,10 @@ function v_log(str: any) { //verbose log
     if (verbose) console.log(str)
 }
 
+function err_log(str: any) {
+    console.error(str)
+}
+
 if (help) {
     var helptext: string = `usage: npx ts-node index.ts [OPTIONS] [-l N] [-O all|characters,locations,notes,items,...]
     Takes the word count of all your campaigns, counting each object separately.
@@ -91,7 +115,7 @@ if (help) {
     
     Options:
         -h, --help              display this message
-        -l, --list_length       length of the highest wordcount ranking, pass 0 to omit it, also works with negative numbers (default: 10)
+        -l, --list_length       length of the highest wordcount ranking, pass 0 to omit it, also works with negative numbers (default: all)
         -n, --no_attributes     (TODO) omit atrributes (age, gender, type, pronouns... + attributes tab)
         -o, --output            (TODO) entries are also written to out.json in the working directory
         -O, --objects           (TODO) specify objects to be included (default: all)
@@ -114,7 +138,6 @@ class Score {
 }
 
 var highest: Array<Score> = []
-var ranking_len: number = parseInt(list_length)
 function placeInRanking(score: Score) {
     var i: number = 0
     var stop: boolean = false
@@ -136,7 +159,7 @@ function placeInRanking(score: Score) {
 }
 
 async function fetchCampaigns() {
-    const response = await fetchWrapper(process.env.API_BASE + 'campaigns', {
+    const data = await fetchWrapper(process.env.API_BASE + 'campaigns', {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -185,13 +208,18 @@ async function fetchCampaigns() {
         log('')
         log(`Total word count: ${charWC + locaWC + abilWC + orgsWC + itemWC + famiWC + noteWC + evntWC + quesWC + caleWC + raceWC + jourWC + tagsWC + creaWC + timeWC + mapsWC}`)
         log(`Total object count: ${highest.length}`)
-        if (list_length) {
+        if (list_length != '0' && list_length != 'all') {
+            var ranking_len: number = parseInt(list_length)
             if (ranking_len != 0) {
                 log(`${!reverse && ranking_len > 0 ? 'Highest' : 'Lowest'} wordcount entries:`)
                 highest.slice(...(ranking_len > 0 ? [0, ranking_len] : [ranking_len])).forEach((el, idx) => {
                     log(`${ranking_len > 0 ? idx + 1 : highest.length + (-ranking_len < highest.length ? ranking_len : -highest.length) + idx + 1}. ${el.name}: ${el.wc}`)
                 });
             }
+        } else if(list_length == 'all') {
+            highest.forEach((el, idx) => {
+                log(`${idx + 1}. ${el.name}: ${el.wc}`)
+            })
         }
         i += 1;
         highest = []
