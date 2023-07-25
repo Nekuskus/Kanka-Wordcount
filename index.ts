@@ -95,7 +95,7 @@ function v_log(str: any, no_endl: boolean = false) { //verbose log
 }
 
 function v_time(time_taken: number) {
-    console.log(`... (${time_taken/1000.0}s elapsed)`)
+    if(verbose) console.log(`... (${time_taken/1000.0}s elapsed)`)
 }
 
 function err_log(str: any) {
