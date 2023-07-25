@@ -9,34 +9,6 @@ function delay(ms: number) { return new Promise(res => setTimeout(res, ms)); }
 var start_timestamp: number = 0;
 
 
-// TODO: this will return the data json instead (or null if errors, or wait if delayed) after some refactoring is done
-async function fetchWrapper(url: string, options: any) {
-
-    // Set start timestamp to calculate fetch time
-    start_timestamp = Date.now()
-
-    var res = await fetch(url, options)
-
-
-    if(res.status == 429) {
-        // Handle API timeout
-        v_log('Timed out! Waiting 1 minute...')
-        await delay(60 * 1000)
-        var data = await fetch(url, options)
-        //start_timestamp = Date.now()
-        return { json: await data.json(), time_taken: Date.now() - start_timestamp }
-    } else if (res.status != 200) {
-        // Handle other errors
-        err_log(`Request failed! Error code: ${res.status} ${res.statusText}`)
-        err_log(`Request url: ${url}`)
-        err_log(res)
-        exit(1)
-    } else {
-        // Return response json and time taken
-        return { json: await res.json(), time_taken: Date.now() - start_timestamp }
-    }
-}
-
 const {
     values: { verbose, output, quiet, list_length, reverse, help, objects, no_attributes, parent }
 } = parseArgs({
@@ -82,24 +54,58 @@ const {
     }
 })
 
-function log(str: any) {
-    if (!quiet) console.log(str)
-}
 
+var last_no_endl = false
+function log(str: any, no_endl: boolean = false) {
+    if (!quiet) {
+        if (no_endl) process.stdout.write(`${last_no_endl ? '\n' : ''}${str}`);
+        else console.log(`${last_no_endl ? '\n' : ''}${str}`)
+    }
+    last_no_endl = no_endl
+}
 
 function v_log(str: any, no_endl: boolean = false) { //verbose log
     if (verbose) { 
-        if (no_endl) process.stdout.write(`[verbose] ${str}`);
-        else console.log(`[verbose] ${str}`)
+        if (no_endl) process.stdout.write(`${last_no_endl ? '\n' : ''}[verbose] ${str}`);
+        else console.log(`${last_no_endl ? '\n' : ''}[verbose] ${str}`)
     }
+    last_no_endl = no_endl
 }
 
-function v_time(time_taken: number) {
+function v_time(time_taken: number) { //verbose time -- follows after verbose fetch print
+    last_no_endl = false
     if(verbose) console.log(`... (${time_taken/1000.0}s elapsed)`)
 }
 
 function err_log(str: any) {
     console.error(str)
+}
+
+
+async function fetchWrapper(url: string, options: any) {
+
+    // Set start timestamp to calculate fetch time
+    start_timestamp = Date.now()
+
+    var res = await fetch(url, options)
+
+
+    if(res.status == 429) {
+        // Handle API timeout
+        v_log('Timed out! Waiting 1 minute', true)
+        await delay(60 * 1000)
+        var data = await fetch(url, options)
+        return { json: await data.json(), time_taken: Date.now() - start_timestamp }
+    } else if (res.status != 200) {
+        // Handle other errors
+        err_log(`Request failed! Error code: ${res.status} ${res.statusText}`)
+        err_log(`Request url: ${url}`)
+        err_log(res)
+        exit(1)
+    } else {
+        // Return response json and time taken
+        return { json: await res.json(), time_taken: Date.now() - start_timestamp }
+    }
 }
 
 if (help) {
@@ -159,7 +165,7 @@ function placeInRanking(score: Score) {
 }
 
 async function fetchCampaigns() {
-    v_log(`Querying page 1 of characters (url: ${process.env.API_BASE + `campaigns`})`, true)
+    v_log(`Querying page 1 of campaigns (url: ${process.env.API_BASE + `campaigns`})`, true)
     const { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + 'campaigns', {
         method: 'GET',
         headers: {
