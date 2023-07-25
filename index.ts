@@ -11,24 +11,29 @@ var start_timestamp: number = 0;
 
 // TODO: this will return the data json instead (or null if errors, or wait if delayed) after some refactoring is done
 async function fetchWrapper(url: string, options: any) {
+
+    // Set start timestamp to calculate fetch time
+    start_timestamp = Date.now()
+
     var res = await fetch(url, options)
 
-    // Set start timestamp to wait for API rate limit refresh
-    if(!start_timestamp) start_timestamp = Date.now()
 
     if(res.status == 429) {
+        // Handle API timeout
         v_log('Timed out! Waiting 1 minute...')
         await delay(60 * 1000)
         var data = await fetch(url, options)
-        start_timestamp = Date.now()
-        return await data.json()
+        //start_timestamp = Date.now()
+        return { json: await data.json(), time_taken: Date.now() - start_timestamp }
     } else if (res.status != 200) {
+        // Handle other errors
         err_log(`Request failed! Error code: ${res.status} ${res.statusText}`)
         err_log(`Request url: ${url}`)
         err_log(res)
         exit(1)
     } else {
-        return await res.json()
+        // Return response json and time taken
+        return { json: await res.json(), time_taken: Date.now() - start_timestamp }
     }
 }
 
@@ -82,8 +87,15 @@ function log(str: any) {
 }
 
 
-function v_log(str: any) { //verbose log
-    if (verbose) console.log(`[verbose] ${str}`)
+function v_log(str: any, no_endl: boolean = false) { //verbose log
+    if (verbose) { 
+        if (no_endl) process.stdout.write(`[verbose] ${str}`);
+        else console.log(`[verbose] ${str}`)
+    }
+}
+
+function v_time(time_taken: number) {
+    console.log(`... (${time_taken/1000.0}s elapsed)`)
 }
 
 function err_log(str: any) {
@@ -147,13 +159,15 @@ function placeInRanking(score: Score) {
 }
 
 async function fetchCampaigns() {
-    const data = await fetchWrapper(process.env.API_BASE + 'campaigns', {
+    v_log(`Querying page 1 of characters... (url: ${process.env.API_BASE + `campaigns`})`, true)
+    const { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + 'campaigns', {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var i: number = 0
     for (var campaign of data.data) {
         if (i > 0) log('')
@@ -212,14 +226,15 @@ async function fetchCampaigns() {
 }
 
 async function fetchCharacters(id: Number) {
-    v_log(`Querying page 1 of characters... (url: ${process.env.API_BASE + `campaigns/${id}/characters?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/characters?related=1`, {
+    v_log(`Querying page 1 of characters... (url: ${process.env.API_BASE + `campaigns/${id}/characters?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/characters?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -254,14 +269,15 @@ async function fetchCharacters(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of characters... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of characters... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
@@ -269,14 +285,15 @@ async function fetchCharacters(id: Number) {
 
 async function fetchLocations(id: Number) {
     //log(id)
-    v_log(`Querying page 1 of locations... (url: ${process.env.API_BASE + `campaigns/${id}/locations?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/locations?related=1`, {
+    v_log(`Querying page 1 of locations... (url: ${process.env.API_BASE + `campaigns/${id}/locations?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/locations?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -310,14 +327,15 @@ async function fetchLocations(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of locations... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of locations... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
         //v_log(JSON.parse(JSON.stringify(data.links)))
     } while (data.links.next != null);
@@ -325,14 +343,15 @@ async function fetchLocations(id: Number) {
 }
 async function fetchAbilities(id: Number) {
     //log(id)
-    v_log(`Querying page 1 of abilities... (url: ${process.env.API_BASE + `campaigns/${id}/abilities?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/abilities?related=1`, {
+    v_log(`Querying page 1 of abilities... (url: ${process.env.API_BASE + `campaigns/${id}/abilities?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/abilities?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -366,28 +385,30 @@ async function fetchAbilities(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of abilities... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of abilities... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null);
     return wordcount
 }
 async function fetchItems(id: Number) {
     //log(id)
-    v_log(`Querying page 1 of items... (url: ${process.env.API_BASE + `campaigns/${id}/items?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/items?related=1`, {
+    v_log(`Querying page 1 of items... (url: ${process.env.API_BASE + `campaigns/${id}/items?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/items?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -425,28 +446,30 @@ async function fetchItems(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of items... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of items... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null);
     return wordcount
 }
 async function fetchOrganisations(id: Number) {
     //log(id)
-    v_log(`Querying page 1 of organisations... (url: ${process.env.API_BASE + `campaigns/${id}/organisations?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/organisations?related=1`, {
+    v_log(`Querying page 1 of organisations... (url: ${process.env.API_BASE + `campaigns/${id}/organisations?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/organisations?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -486,28 +509,30 @@ async function fetchOrganisations(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of organisations... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of organisations... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null);
     return wordcount
 }
 async function fetchFamilies(id: Number) {
     //log(id)
-    v_log(`Querying page 1 of families... (url: ${process.env.API_BASE + `campaigns/${id}/families?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/families?related=1`, {
+    v_log(`Querying page 1 of families... (url: ${process.env.API_BASE + `campaigns/${id}/families?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/families?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -541,28 +566,30 @@ async function fetchFamilies(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of families... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of families... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null);
     return wordcount
 }
 async function fetchNotes(id: Number) {
     //log(id)
-    v_log(`Querying page 1 of notes... (url: ${process.env.API_BASE + `campaigns/${id}/notes?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/notes?related=1`, {
+    v_log(`Querying page 1 of notes... (url: ${process.env.API_BASE + `campaigns/${id}/notes?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/notes?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -588,28 +615,30 @@ async function fetchNotes(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of notes... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of notes... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null);
     return wordcount
 }
 
 async function fetchEvents(id: Number) {
-    v_log(`Querying page 1 of events... (url: ${process.env.API_BASE + `campaigns/${id}/events?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/events?related=1`, {
+    v_log(`Querying page 1 of events... (url: ${process.env.API_BASE + `campaigns/${id}/events?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/events?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -644,28 +673,30 @@ async function fetchEvents(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of events... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of events... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
 }
 
 async function fetchQuests(id: Number) {
-    v_log(`Querying page 1 of quests... (url: ${process.env.API_BASE + `campaigns/${id}/quests?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/quests?related=1`, {
+    v_log(`Querying page 1 of quests... (url: ${process.env.API_BASE + `campaigns/${id}/quests?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/quests?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -700,28 +731,30 @@ async function fetchQuests(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of quests... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of quests... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
 }
 
 async function fetchCalendars(id: Number) {
-    v_log(`Querying page 1 of calendars... (url: ${process.env.API_BASE + `campaigns/${id}/calendars?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/calendars?related=1`, {
+    v_log(`Querying page 1 of calendars... (url: ${process.env.API_BASE + `campaigns/${id}/calendars?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/calendars?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -795,14 +828,15 @@ async function fetchCalendars(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of calendars... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of calendars... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
@@ -811,14 +845,15 @@ async function fetchCalendars(id: Number) {
 
 
 async function fetchRaces(id: Number) {
-    v_log(`Querying page 1 of races... (url: ${process.env.API_BASE + `campaigns/${id}/races?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/races?related=1`, {
+    v_log(`Querying page 1 of races... (url: ${process.env.API_BASE + `campaigns/${id}/races?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/races?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -853,14 +888,15 @@ async function fetchRaces(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of races... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of races... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
@@ -868,14 +904,15 @@ async function fetchRaces(id: Number) {
 
 
 async function fetchJournals(id: Number) {
-    v_log(`Querying page 1 of journals... (url: ${process.env.API_BASE + `campaigns/${id}/journals?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/journals?related=1`, {
+    v_log(`Querying page 1 of journals... (url: ${process.env.API_BASE + `campaigns/${id}/journals?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/journals?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -910,14 +947,15 @@ async function fetchJournals(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of journals... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of journals... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
@@ -925,14 +963,15 @@ async function fetchJournals(id: Number) {
 
 
 async function fetchTags(id: Number) {
-    v_log(`Querying page 1 of tags... (url: ${process.env.API_BASE + `campaigns/${id}/tags?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/tags?related=1`, {
+    v_log(`Querying page 1 of tags... (url: ${process.env.API_BASE + `campaigns/${id}/tags?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/tags?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -969,28 +1008,30 @@ async function fetchTags(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of tags... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of tags... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
 }
 
 async function fetchCreatures(id: Number) {
-    v_log(`Querying page 1 of creatures... (url: ${process.env.API_BASE + `campaigns/${id}/creatures?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/creatures?related=1`, {
+    v_log(`Querying page 1 of creatures... (url: ${process.env.API_BASE + `campaigns/${id}/creatures?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/creatures?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -1025,28 +1066,30 @@ async function fetchCreatures(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of creatures... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of creatures... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
 }
 
 async function fetchTimelines(id: Number) {
-    v_log(`Querying page 1 of timelines... (url: ${process.env.API_BASE + `campaigns/${id}/timelines?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/timelines?related=1`, {
+    v_log(`Querying page 1 of timelines... (url: ${process.env.API_BASE + `campaigns/${id}/timelines?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/timelines?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -1114,28 +1157,30 @@ async function fetchTimelines(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of timelines... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of timelines... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
 }
 
 async function fetchMaps(id: Number) {
-    v_log(`Querying page 1 of maps... (url: ${process.env.API_BASE + `campaigns/${id}/maps?related=1`})`)
-    var data = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/maps?related=1`, {
+    v_log(`Querying page 1 of maps... (url: ${process.env.API_BASE + `campaigns/${id}/maps?related=1`})`, true)
+    var { json: data, time_taken } = await fetchWrapper(process.env.API_BASE + `campaigns/${id}/maps?related=1`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Authorization': 'Bearer ' + process.env.API_KEY
         }
     })
+    v_time(time_taken)
     var new_data = null
     //fs.writeFileSync('out.json', JSON.stringify(data), { flag: 'a' })
     let wordcount: number = 0;
@@ -1182,14 +1227,15 @@ async function fetchMaps(id: Number) {
         }
         v_log(`Next is: ${data.links.next}`)
         if (data.links.next != null) {
-            v_log(`Querying page ${data.links.next.substr(-1)} of maps... (url: ${data.links.next + '&related=1'})`)
-            new_data = await fetchWrapper(data.links.next + '&related=1', {
+            v_log(`Querying page ${data.links.next.substr(-1)} of maps... (url: ${data.links.next + '&related=1'})`, true)
+            ;({ json: new_data, time_taken } = await fetchWrapper(data.links.next + '&related=1', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': 'Bearer ' + process.env.API_KEY
                 }
-            })
+            }))
+            v_time(time_taken)
         }
     } while (data.links.next != null)
     return wordcount
