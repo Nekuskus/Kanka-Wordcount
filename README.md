@@ -13,7 +13,7 @@ Uses a .env file for the API key and API base.<br/>
 Format:
 ```ini
 API_KEY=[your api key here]
-API_BASE=[preffered kanka.io API version's base url, 1.0: https://kanka.io/api/1.0/]
+API_BASE=[preffered kanka.io API version's base url, 1.0: https://api.kanka.io/1.0/]
 ```
 ## Options
     -h, --help              display this message
